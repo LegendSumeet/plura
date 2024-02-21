@@ -8,8 +8,7 @@ export default authMiddleware({
     const url = req.nextUrl;
     const searchParams = url.searchParams.toString();
     let hostname = req.headers;
-   console.log(url);
-   console.log(searchParams);
+
 
     const pathWithSearchParams = `${url.pathname}${
       searchParams.length > 0 ? `?${searchParams}` : ""
