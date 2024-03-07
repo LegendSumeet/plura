@@ -32,6 +32,97 @@ export const getAuthUserDetails = async () => {
   return userdata;
 };
 
+export const saveActivitylogsnotification = async ({
+  agencyId,
+  description,
+  subaccountid,
+}: {
+  agencyId: string;
+  description: string;
+  subaccountid: string;
+}) => {
+  const authuser = await currentUser();
+  let userData;
+  if (!authuser) {
+    const response = await db.user.findFirst({
+      where: {
+        Agency: {
+          SubAccount: {
+            some: {
+              id: subaccountid,
+            },
+          },
+        },
+      },
+    });
+    if (response) {
+      userData = response;
+    }
+  } else {
+    userData = await db.user.findUnique({
+      where: {
+        email: authuser?.emailAddresses[0].emailAddress,
+      },
+    });
+  }
+  if (!userData) {
+    console.log("user not found");
+    return;
+  }
+  let foundagencyid = agencyId;
+  if (!foundagencyid) {
+    if (!subaccountid) {
+      throw new Error("agencyId or subaccountid is required");
+    }
+  }
+  const response = await db.subAccount.findUnique({
+    where: {
+      id: subaccountid,
+    },
+  });
+  if (response) {
+    foundagencyid = response.agencyId;
+  }
+  if (subaccountid) {
+    await db.notification.create({
+      data: {
+        notification: `${userData.name} ${description}`,
+        User: {
+          connect: {
+            id: userData.id,
+          },
+        },
+        Agency: {
+          connect: {
+            id: foundagencyid,
+          },
+        },
+        SubAccount: {
+          connect: {
+            id: subaccountid,
+          },
+        },
+      },
+    });
+  } else {
+    await db.notification.create({
+      data: {
+        notification: `${userData.name} ${description}`,
+        User: {
+          connect: {
+            id: userData.id,
+          },
+        },
+        Agency: {
+          connect: {
+            id: foundagencyid,
+          },
+        },
+      },
+    });
+  }
+};
+
 export const createTeamUser = async (agencyId: string, user: User) => {
   if (user.role === "AGENCY_OWNER") return null;
   const response = await db.user.create({ data: { ...user } });
@@ -57,7 +148,6 @@ export const verfiyandacceptinvite = async () => {
       role: Existinginvite.role,
       createdAt: new Date(),
       updatedAt: new Date(),
-    })
-
+    });
   }
 };
